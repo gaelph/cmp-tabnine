@@ -1,6 +1,9 @@
 # cmp-tabnine
 Tabnine source for [hrsh7th/nvim-cmp](https://github.com/hrsh7th/nvim-cmp)
 
+> This is a fork for [https://github.com/tzachar/cmp-tabnine](https://github.com/tzachar/cmp-tabnine)
+> that aims at fixing an issue with inconsistent multi-line snippets
+
 # Install
 
 ## Dependencies
@@ -20,12 +23,12 @@ For more information, see [about_Execution_Policies](https:/go.microsoft.com/fwl
 
 Using plug:
    ```viml
-   Plug 'tzachar/cmp-tabnine', { 'do': './install.sh' }
+   Plug 'gaelph/cmp-tabnine', { 'do': './install.sh' }
    ```
 
 Using plug on windows:
    ```viml
-   Plug 'tzachar/cmp-tabnine', { 'do': 'powershell ./install.ps1' }
+   Plug 'gaelph/cmp-tabnine', { 'do': 'powershell ./install.ps1' }
    ```
 
 Using [Packer](https://github.com/wbthomason/packer.nvim/):
@@ -33,7 +36,7 @@ Using [Packer](https://github.com/wbthomason/packer.nvim/):
 return require("packer").startup(
 	function(use)
 		use "hrsh7th/nvim-cmp" --completion
-		use {'tzachar/cmp-tabnine', run='./install.sh', requires = 'hrsh7th/nvim-cmp'}
+		use {'gaelph/cmp-tabnine', run='./install.sh', requires = 'hrsh7th/nvim-cmp'}
 	end
 )
    ```
@@ -42,7 +45,7 @@ Using [Packer](https://github.com/wbthomason/packer.nvim/) on windows:
 return require("packer").startup(
 	function(use)
 		use "hrsh7th/nvim-cmp" --completion
-		use {'tzachar/cmp-tabnine', after = "nvim-cmp", run='powershell ./install.ps1', requires = 'hrsh7th/nvim-cmp'}
+		use {'gaelph/cmp-tabnine', after = "nvim-cmp", run='powershell ./install.ps1', requires = 'hrsh7th/nvim-cmp'}
 	end
 )
    ```
@@ -58,7 +61,7 @@ require'cmp'.setup {
 }
    ```
 ## Using NvChad
-see [this issue](https://github.com/tzachar/cmp-tabnine/issues/47)
+see [this issue](https://github.com/gaelph/cmp-tabnine/issues/47)
 
 # Setup
 
@@ -101,7 +104,7 @@ Sort results by returned priority
 
 ## `run_on_every_keystroke`
 
-Generate new completion items on every keystroke. For more info, check out [#18](https://github.com/tzachar/cmp-tabnine//issues/18)
+Generate new completion items on every keystroke. For more info, check out [#18](https://github.com/gaelph/cmp-tabnine//issues/18)
 
 ## `snippet_placeholder`
 
