@@ -176,14 +176,12 @@ function Source.on_stdout(self, _, data)
   --   "docs": []
   -- }
 
-  for _, jd in ipairs(data) do
-    if jd ~= nil and jd ~= '' and jd ~= 'null' then
-      local response = (json_decode(jd) or {})
-      if response == nil then
-        dump('TabNine: json decode error: ', jd)
-      else
-        self.sender.send(response)
-      end
+  if data ~= nil and data ~= '' and data ~= 'null' then
+    local response = (json_decode(data) or {})
+    if response == nil then
+      dump('TabNine: json decode error: ', data)
+    else
+      self.sender.send(response)
     end
   end
 end
