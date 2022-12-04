@@ -38,7 +38,7 @@ function Source.new()
   last_instance.sender = sender
   last_instance.receiver = receiver
 
-  last_instance.semaphore = async.control.Semaphore:new(1)
+  last_instance.semaphore = async.control.Semaphore.new(1)
 
   last_instance:_start_binary(bin)
   return last_instance
