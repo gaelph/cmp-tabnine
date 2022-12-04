@@ -11,6 +11,8 @@ end
 
 local function json_decode(data)
   local status, result = pcall(vim.fn.json_decode, data)
+  print('[LS] result: ' .. vim.inspect(result))
+  print('[LS] status: ' .. vim.inspect(status))
   if status then
     return result
   else
@@ -88,6 +90,7 @@ Source._send_request = async.wrap(function(self, req, callback)
     pcall(self.job.send, self.job, vim.fn.json_encode(req) .. '\n')
 
     local response = self.receiver.recv()
+    print('[LS] response: ' .. vim.inspect(response))
 
     permit:forget()
     return response
@@ -101,15 +104,21 @@ Source._do_complete = async.wrap(function(self, ctx, callback)
 
   local req = requests.auto_complete_request(ctx, conf)
   req.version = self.tabnine_version
+  print('[LS] req: ' .. vim.inspect(req))
 
-  async.run(function()
-    -- if there is an error, e.g., the channel is dead, we expect on_exit will be
-    -- called in the future and restart the server
-    -- we use pcall as we do not want to spam the user with error messages
-    return self:_send_request(req)
-  end, function(response)
-    callback(requests.auto_complete_response(response, ctx, conf))
-  end)
+  async.run(
+    function()
+      -- if there is an error, e.g., the channel is dead, we expect on_exit will be
+      -- called in the future and restart the server
+      -- we use pcall as we do not want to spam the user with error messages
+      return self:_send_request(req)
+    end,
+    vim.schedule_wrap(function(response)
+      response = json_decode(response)
+      print('[LS] response: ' .. vim.inspect(response))
+      callback(requests.auto_complete_response(response, ctx, conf))
+    end)
+  )
 end, 3)
 
 function Source.prefetch(self, file_path)
@@ -123,10 +132,10 @@ end
 
 --- complete
 function Source.complete(self, ctx, callback)
+  if conf:get('ignored_file_types')[vim.bo.filetype] then
+    return
+  end
   async.run(function()
-    if conf:get('ignored_file_types')[vim.bo.filetype] then
-      return
-    end
     return self:_do_complete(ctx)
   end, callback)
 end
@@ -144,6 +153,7 @@ function Source._start_binary(self, bin)
     enable_handlers = true,
     on_stderr = nil,
     on_stdout = function(_, output, job)
+      print('[LS] output: ' .. vim.inspect(output))
       self:on_stdout(job, output)
     end,
   })
@@ -165,6 +175,7 @@ end
 
 function Source.on_stdout(self, _, data)
   if not self.sender then
+    print('nosender')
     return
   end
   -- {
@@ -182,12 +193,7 @@ function Source.on_stdout(self, _, data)
   -- }
 
   if data ~= nil and data ~= '' and data ~= 'null' then
-    local response = (json_decode(data) or {})
-    if response == nil then
-      dump('TabNine: json decode error: ', data)
-    else
-      self.sender.send(response)
-    end
+    self.sender.send(data)
   end
 end
 
