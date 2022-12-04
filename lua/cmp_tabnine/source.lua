@@ -52,7 +52,7 @@ function Source.get_hub_url(self)
   return self.hub_url
 end
 
-function Source.open_tabnine_hub(self, quiet)
+Source.open_tabnine_hub = async.wrap(function(self, quiet, callback)
   local req = requests.open_hub_request(quiet)
   req.version = self.tabnine_version
 
@@ -61,10 +61,12 @@ function Source.open_tabnine_hub(self, quiet)
     self = last_instance
   end
 
-  local response = self:_send_request(req)
-
-  return requests.open_hub_response(response)
-end
+  async.run(function()
+    return self:_send_request(req)
+  end, function(response)
+    callback(requests.open_hub_response(response))
+  end)
+end, 3)
 
 function Source.is_available(self)
   return (self.job ~= 0)
@@ -80,17 +82,19 @@ Source._send_request = async.wrap(function(self, req, callback)
     return
   end
 
-  local permit = self.semaphore:acquire()
+  async.run(function()
+    local permit = self.semaphore:acquire()
 
-  pcall(self.job.send, self.job, vim.fn.json_encode(req) .. '\n')
+    pcall(self.job.send, self.job, vim.fn.json_encode(req) .. '\n')
 
-  local response = self.receiver.recv()
+    local response = self.receiver.recv()
 
-  permit:forget()
-  callback(response)
-end, 2)
+    permit:forget()
+    return response
+  end, callback)
+end, 3)
 
-function Source._do_complete(self, ctx)
+Source._do_complete = async.wrap(function(self, ctx, callback)
   if self.job == 0 then
     return
   end
@@ -98,16 +102,18 @@ function Source._do_complete(self, ctx)
   local req = requests.auto_complete_request(ctx, conf)
   req.version = self.tabnine_version
 
-  -- if there is an error, e.g., the channel is dead, we expect on_exit will be
-  -- called in the future and restart the server
-  -- we use pcall as we do not want to spam the user with error messages
-  local response = self:_send_request(req)
-
-  return requests.auto_complete_response(response, ctx, conf)
-end
+  async.run(function()
+    -- if there is an error, e.g., the channel is dead, we expect on_exit will be
+    -- called in the future and restart the server
+    -- we use pcall as we do not want to spam the user with error messages
+    return self:_send_request(req)
+  end, function(response)
+    callback(requests.auto_complete_response(response, ctx, conf))
+  end)
+end, 3)
 
 function Source.prefetch(self, file_path)
-  async.void(function()
+  async.run(function()
     local req = requests.prefetch_request(file_path)
     req.version = self.tabnine_version
 
@@ -119,7 +125,6 @@ end
 function Source.complete(self, ctx, callback)
   async.run(function()
     if conf:get('ignored_file_types')[vim.bo.filetype] then
-      callback()
       return
     end
     return self:_do_complete(ctx)
