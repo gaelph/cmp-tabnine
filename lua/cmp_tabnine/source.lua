@@ -132,13 +132,6 @@ function Source._start_binary(self, bin)
       '--client=cmp.vim',
     },
     enable_handlers = true,
-    on_start = function()
-      async.run(function()
-        return self:open_tabnine_hub(true)
-      end, function(hub_url)
-        self.hub_url = hub_url
-      end)
-    end,
     on_stderr = nil,
     on_stdout = function(_, output, job)
       self:on_stdout(job, output)
@@ -150,6 +143,12 @@ function Source._start_binary(self, bin)
       end
     end)
     :start()
+
+  async.run(function()
+    return self:open_tabnine_hub(true)
+  end, function(hub_url)
+    self.hub_url = hub_url
+  end)
 end
 
 function Source.on_stdout(self, _, data)
