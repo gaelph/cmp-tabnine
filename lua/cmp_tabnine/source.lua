@@ -102,23 +102,23 @@ function Source._do_complete(self, ctx)
 end
 
 function Source.prefetch(self, file_path)
-  local req = requests.prefetch_request(file_path)
-  req.version = self.tabnine_version
+  async.void(function()
+    local req = requests.prefetch_request(file_path)
+    req.version = self.tabnine_version
 
-  local response = self:_send_request(req)
-
-  return requests.prefetch_response(response)
+    self:_send_request(req)
+  end)
 end
 
 --- complete
 function Source.complete(self, ctx, callback)
-  if conf:get('ignored_file_types')[vim.bo.filetype] then
-    callback()
-    return
-  end
-  local result = self:_do_complete(ctx)
-
-  callback(result)
+  async.run(function()
+    if conf:get('ignored_file_types')[vim.bo.filetype] then
+      callback()
+      return
+    end
+    return self:_do_complete(ctx)
+  end, callback)
 end
 
 function Source._start_binary(self, bin)
@@ -133,7 +133,11 @@ function Source._start_binary(self, bin)
     },
     enable_handlers = true,
     on_start = function()
-      self:open_tabnine_hub(true)
+      async.run(function()
+        return self:open_tabnine_hub(true)
+      end, function(hub_url)
+        self.hub_url = hub_url
+      end)
     end,
     on_stderr = nil,
     on_stdout = function(_, output, job)

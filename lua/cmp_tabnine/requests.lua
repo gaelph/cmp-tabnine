@@ -185,7 +185,7 @@ function M.open_hub_response(response)
   if (response.message or ''):find('http://127.0.0.1') then
     return response.message:match('.*(http://127.0.0.1.*)')
   else
-    return nil
+    return 'Unknown'
   end
 end
 
