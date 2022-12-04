@@ -4,15 +4,8 @@ local conf = require('cmp_tabnine.config')
 local requests = require('cmp_tabnine.requests')
 local binary = require('cmp_tabnine.binary')
 
-local function dump(...)
-  local objects = vim.tbl_map(vim.inspect, { ... })
-  print(unpack(objects))
-end
-
 local function json_decode(data)
   local status, result = pcall(vim.fn.json_decode, data)
-  print('[LS] result: ' .. vim.inspect(result))
-  print('[LS] status: ' .. vim.inspect(status))
   if status then
     return result
   else
@@ -90,7 +83,6 @@ Source._send_request = async.wrap(function(self, req, callback)
     pcall(self.job.send, self.job, vim.fn.json_encode(req) .. '\n')
 
     local response = self.receiver.recv()
-    print('[LS] response: ' .. vim.inspect(response))
 
     permit:forget()
     return response
@@ -104,7 +96,6 @@ Source._do_complete = async.wrap(function(self, ctx, callback)
 
   local req = requests.auto_complete_request(ctx, conf)
   req.version = self.tabnine_version
-  print('[LS] req: ' .. vim.inspect(req))
 
   async.run(
     function()
@@ -115,7 +106,6 @@ Source._do_complete = async.wrap(function(self, ctx, callback)
     end,
     vim.schedule_wrap(function(response)
       response = json_decode(response)
-      print('[LS] response: ' .. vim.inspect(response))
       callback(requests.auto_complete_response(response, ctx, conf))
     end)
   )
@@ -153,7 +143,6 @@ function Source._start_binary(self, bin)
     enable_handlers = true,
     on_stderr = nil,
     on_stdout = function(_, output, job)
-      print('[LS] output: ' .. vim.inspect(output))
       self:on_stdout(job, output)
     end,
   })
@@ -175,7 +164,6 @@ end
 
 function Source.on_stdout(self, _, data)
   if not self.sender then
-    print('nosender')
     return
   end
   -- {
