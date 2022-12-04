@@ -75,6 +75,11 @@ function Source.get_debug_name()
 end
 
 Source._send_request = async.wrap(function(self, req, callback)
+  if not self.job then
+    vim.notify('TabNine binary might not be running')
+    return
+  end
+
   local permit = self.semaphore:acquire()
 
   pcall(self.job.send, self.job, vim.fn.json_encode(req) .. '\n')
@@ -137,12 +142,14 @@ function Source._start_binary(self, bin)
       self:on_stdout(job, output)
     end,
   })
-    :after(function(code, _)
-      if code ~= 143 then
-        self:_start_binary(bin)
-      end
-    end)
-    :start()
+
+  self.job:after(function(code, _)
+    if code ~= 143 then
+      self:_start_binary(bin)
+    end
+  end)
+
+  self.job:start()
 
   async.run(function()
     return self:open_tabnine_hub(true)
