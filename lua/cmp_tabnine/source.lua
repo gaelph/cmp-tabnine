@@ -74,7 +74,7 @@ end
 Source._send_request = async.wrap(function(self, req, callback)
   if not self.job then
     vim.notify('TabNine binary might not be running')
-    return
+    callback()
   end
 
   async.run(function()
@@ -89,8 +89,8 @@ Source._send_request = async.wrap(function(self, req, callback)
   end, callback)
 end, 3)
 
-Source._do_complete = async.wrap(function(self, ctx, callback)
-  if self.job == 0 then
+function Source._do_complete(self, ctx, callback)
+  if not Job.is_job(self.job) then
     return
   end
 
@@ -109,7 +109,7 @@ Source._do_complete = async.wrap(function(self, ctx, callback)
       callback(requests.auto_complete_response(response, ctx, conf))
     end)
   )
-end, 3)
+end
 
 function Source.prefetch(self, file_path)
   async.run(function()
@@ -150,6 +150,8 @@ function Source._start_binary(self, bin)
   self.job:after(function(code, _)
     if code ~= 143 then
       self:_start_binary(bin)
+    else
+      self.job = 0
     end
   end)
 
@@ -166,19 +168,6 @@ function Source.on_stdout(self, _, data)
   if not self.sender then
     return
   end
-  -- {
-  --   "old_prefix": "wo",
-  --   "results": [
-  --     {
-  --       "new_prefix": "world",
-  --       "old_suffix": "",
-  --       "new_suffix": "",
-  --       "detail": "64%"
-  --     }
-  --   ],
-  --   "user_message": [],
-  --   "docs": []
-  -- }
 
   if data ~= nil and data ~= '' and data ~= 'null' then
     self.sender.send(data)
