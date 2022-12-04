@@ -50,7 +50,7 @@ local function compare_semver(a, b)
 end
 
 return function()
-  local versions_folders = vim.globpath(binaries_folder, '*', false, true)
+  local versions_folders = vim.fn.globpath(binaries_folder, '*', false, true)
   local versions = {}
 
   for _, dirpath in ipairs(versions_folders) do

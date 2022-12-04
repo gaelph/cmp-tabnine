@@ -1,6 +1,5 @@
 local Job = require('plenary.job')
 local async = require('plenary.async')
-local fn = vim.fn
 local conf = require('cmp_tabnine.config')
 local requests = require('cmp_tabnine.requests')
 local binary = require('cmp_tabnine.binary')
@@ -78,7 +77,7 @@ end
 Source._send_request = async.wrap(function(self, req, callback)
   local permit = self.semaphore:acquire()
 
-  pcall(self.job.send, self.job, fn.json_encode(req) .. '\n')
+  pcall(self.job.send, self.job, vim.fn.json_encode(req) .. '\n')
 
   local response = self.receiver.recv()
 
