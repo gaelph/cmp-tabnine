@@ -56,8 +56,10 @@ Source.open_tabnine_hub = async.wrap(function(self, quiet, callback)
     self = last_instance
   end
 
+  local payload = vim.fn.json_encode(req) .. '\n'
+
   async.run(function()
-    return self:_send_request(req)
+    return self:_send_request(payload)
   end, function(response)
     callback(requests.open_hub_response(response))
   end)
@@ -80,7 +82,7 @@ Source._send_request = async.wrap(function(self, req, callback)
   async.run(function()
     local permit = self.semaphore:acquire()
 
-    pcall(self.job.send, self.job, vim.fn.json_encode(req) .. '\n')
+    pcall(self.job.send, self.job, req)
 
     local response = self.receiver.recv()
 
@@ -89,34 +91,35 @@ Source._send_request = async.wrap(function(self, req, callback)
   end, callback)
 end, 3)
 
-Source._do_complete = async.wrap(function(self, ctx, callback)
+function Source._do_complete(self, ctx, callback)
   if self.job == 0 then
     return
   end
 
   local req = requests.auto_complete_request(ctx, conf)
   req.version = self.tabnine_version
+  local payload = vim.fn.json_encode(req) .. '\n'
 
   async.run(
     function()
       -- if there is an error, e.g., the channel is dead, we expect on_exit will be
       -- called in the future and restart the server
       -- we use pcall as we do not want to spam the user with error messages
-      return self:_send_request(req)
+      return self:_send_request(payload)
     end,
     vim.schedule_wrap(function(response)
       response = json_decode(response)
       callback(requests.auto_complete_response(response, ctx, conf))
     end)
   )
-end, 3)
+end
 
 function Source.prefetch(self, file_path)
+  local req = requests.prefetch_request(file_path)
+  req.version = self.tabnine_version
+  local payload = vim.fn.json_encode(req) .. '\n'
   async.run(function()
-    local req = requests.prefetch_request(file_path)
-    req.version = self.tabnine_version
-
-    self:_send_request(req)
+    self:_send_request(payload)
   end)
 end
 
@@ -125,9 +128,8 @@ function Source.complete(self, ctx, callback)
   if conf:get('ignored_file_types')[vim.bo.filetype] then
     return
   end
-  async.run(function()
-    return self:_do_complete(ctx)
-  end, callback)
+
+  self:_do_complete(ctx, callback)
 end
 
 function Source._start_binary(self, bin)
