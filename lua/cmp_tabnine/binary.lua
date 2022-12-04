@@ -22,7 +22,7 @@ local function script_path()
 end
 
 -- do this once on init, otherwise on restart this dows not work
-local binaries_folder = script_path():parent():parent() .. 'binaries'
+local binaries_folder = script_path():parent():parent() .. sep .. 'binaries'
 
 -- this function is taken from https://github.com/yasuoka/stralnumcmp/blob/master/stralnumcmp.lua
 local function compare_semver(a, b)
