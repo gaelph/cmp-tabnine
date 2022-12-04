@@ -158,7 +158,7 @@ function M.auto_complete_response(response, ctx, conf)
   return items
 end
 
-function M.prefecth_request(filename)
+function M.prefetch_request(filename)
   local req = {}
   req.request = {
     Prefetch = {
@@ -168,7 +168,7 @@ function M.prefecth_request(filename)
   return req
 end
 
-function M.prefecth_response(_) end
+function M.prefetch_response(_) end
 
 function M.open_hub_request(quiet)
   local req = {}
