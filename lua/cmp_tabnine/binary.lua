@@ -1,4 +1,6 @@
-local path = require('plenary.path')
+local Path = require('plenary.path')
+
+local sep = Path.path.sep
 
 local is_win = (function()
   if jit then
@@ -15,8 +17,8 @@ end)()
 
 local function script_path()
   local str = debug.getinfo(2, 'S').source:sub(2)
-  str = str:gsub('/', path.sep)
-  return path:new(str:match('(.*' .. path.sep .. ')'))
+  str = str:gsub('/', sep)
+  return Path:new(str:match('(.*' .. sep .. ')'))
 end
 
 -- do this once on init, otherwise on restart this dows not work
