@@ -50,7 +50,7 @@ function Source.get_hub_url(self)
   return ''
 end
 
-Source.open_tabnine_hub = async.wrap(function(self, quiet, callback)
+Source.open_tabnine_hub = function(self, quiet, callback)
   local req = requests.open_hub_request(quiet)
   req.version = self.tabnine_version
 
@@ -69,7 +69,7 @@ Source.open_tabnine_hub = async.wrap(function(self, quiet, callback)
       callback(requests.open_hub_response(response))
     end)
   )
-end, 3)
+end
 
 function Source.is_available(self)
   return (self.job ~= 0)
