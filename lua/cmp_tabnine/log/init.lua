@@ -22,7 +22,7 @@ end
 local function table_pack(...)
   return { n = select('#', ...), ... }
 end
-local current_log_level = vim.log.levels.TRACE
+local current_log_level = vim.log.levels.WARN
 
 local config = {
   -- Name of the plugin. Prepended to log messages
@@ -30,7 +30,7 @@ local config = {
 
   -- Should print the output to neovim while running
   -- values: 'sync','async',false
-  use_console = vim.env.MASON_VERBOSE_LOGS == '1',
+  use_console = false,
 
   -- Should highlighting be used in console (using echohl)
   highlights = true,

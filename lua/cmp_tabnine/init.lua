@@ -1,6 +1,5 @@
 local cmp = require('cmp')
 local source = require('cmp_tabnine.source')
-local log = require('cmp_tabnine.log')
 
 local M = {}
 
@@ -23,11 +22,17 @@ M.setup = function()
 
     if vim.api.nvim_create_user_command ~= nil then
       vim.api.nvim_create_user_command('CmpTabnineHub', function()
-        M.tabnine_source:open_tabnine_hub(false)
+        vim.schedule(function()
+          M.tabnine_source:open_tabnine_hub(false)
+        end)
       end, { force = true })
 
       vim.api.nvim_create_user_command('CmpTabnineHubUrl', function()
-        vim.notify(M.tabnine_source:get_hub_url())
+        vim.schedule(function()
+          M.tabnine_source:get_hub_url(function(url)
+            vim.notify(url)
+          end)
+        end)
       end, { force = true })
 
       vim.api.nvim_create_user_command('CmpTabninePrefetch', function(args)

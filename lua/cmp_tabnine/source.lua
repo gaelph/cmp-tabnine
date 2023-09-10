@@ -1,5 +1,3 @@
-local Job = require('plenary.job')
-local async = require('plenary.async')
 local conf = require('cmp_tabnine.config')
 local requests = require('cmp_tabnine.requests')
 local binary = require('cmp_tabnine.binary')
@@ -27,106 +25,55 @@ local last_instance = nil
 
 function Source.new()
   last_instance = setmetatable({}, { __index = Source })
-  local bin, version = binary()
-  last_instance.tabnine_version = version
-
-  local sender, receiver = async.control.channel.mpsc()
-  last_instance.sender = sender
-  last_instance.receiver = receiver
-
-  last_instance.semaphore = async.control.Semaphore.new(1)
-
-  last_instance:_start_binary(bin)
+  last_instance.binary = binary
+  last_instance.binary:start()
   return last_instance
 end
 
-function Source.get_hub_url(self)
+function Source.get_hub_url(self, callback)
+  local req = requests.open_hub_request(true)
+  self.binary:request(req, function(res)
+    local response = requests.open_hub_response(res)
+    callback(response)
+  end)
+end
+
+function Source.open_tabnine_hub(self, callback)
+  local req = requests.open_hub_request(false)
+
   if self == nil and last_instance ~= nil then
     -- this happens when nvim < 0.7 and vim.api.nvim_add_user_command does not exist
     self = last_instance
-    return self.hub_url
+  else
+    return
   end
 
-  return ''
-end
-
-Source.open_tabnine_hub = function(self, quiet, callback)
-  local req = requests.open_hub_request(quiet)
-  req.version = self.tabnine_version
-
-  if self == nil then
-    -- this happens when nvim < 0.7 and vim.api.nvim_add_user_command does not exist
-    self = last_instance
-  end
-
-  local payload = vim.fn.json_encode(req) .. '\n'
-
-  async.run(
-    function()
-      return self:_send_request(payload)
-    end,
-    vim.schedule_wrap(function(response)
-      callback(requests.open_hub_response(response))
-    end)
-  )
+  self.binary:request(req, function()
+    callback()
+  end)
 end
 
 function Source.is_available(self)
-  return (self.job ~= 0)
+  return self.binary ~= nil
 end
 
 function Source.get_debug_name()
   return 'TabNine'
 end
 
-Source._send_request = async.wrap(function(self, req, callback)
-  if not self.job then
-    vim.notify('TabNine binary might not be running')
-    return
-  end
-
-  async.run(function()
-    local permit = self.semaphore:acquire()
-
-    pcall(self.job.send, self.job, req)
-
-    local response = self.receiver.recv()
-
-    permit:forget()
-    return response
-  end, callback)
-end, 3)
-
 function Source._do_complete(self, ctx, callback)
-  if self.job == 0 then
-    return
-  end
-
   local req = requests.auto_complete_request(ctx, conf)
-  req.version = self.tabnine_version
-  local payload = vim.fn.json_encode(req) .. '\n'
 
-  async.run(
-    function()
-      -- if there is an error, e.g., the channel is dead, we expect on_exit will be
-      -- called in the future and restart the server
-      -- we use pcall as we do not want to spam the user with error messages
-      return self:_send_request(payload)
-    end,
-    vim.schedule_wrap(function(response)
-      response = json_decode(response)
-      callback(requests.auto_complete_response(response, ctx, conf))
-    end)
-  )
+  self.binary:request(req, function(res)
+    local response = requests.auto_complete_response(res, ctx, conf)
+    callback(response)
+  end)
 end
 
 function Source.prefetch(self, file_path)
   local req = requests.prefetch_request(file_path)
-  req.version = self.tabnine_version
-  local payload = vim.fn.json_encode(req) .. '\n'
-  async.run(function()
-    self:_send_request(payload)
-  end)
+
+  self.binary:request(req, function() end)
 end
 
 --- complete
@@ -136,61 +83,6 @@ function Source.complete(self, ctx, callback)
   end
 
   self:_do_complete(ctx, callback)
-end
-
-function Source._start_binary(self, bin)
-  if not bin then
-    return
-  end
-
-  self.job = Job:new({
-    command = bin,
-    args = {
-      '--client=cmp.vim',
-    },
-    enable_handlers = true,
-    on_stderr = nil,
-    on_stdout = function(_, output, job)
-      self:on_stdout(job, output)
-    end,
-  })
-
-  self.job:after(function(code, _)
-    if code ~= 143 then
-      self:_start_binary(bin)
-    end
-  end)
-
-  self.job:start()
-
-  async.run(function()
-    return self:open_tabnine_hub(true)
-  end, function(hub_url)
-    self.hub_url = hub_url
-  end)
-end
-
-function Source.on_stdout(self, _, data)
-  if not self.sender then
-    return
-  end
-  -- {
-  --   "old_prefix": "wo",
-  --   "results": [
-  --     {
-  --       "new_prefix": "world",
-  --       "old_suffix": "",
-  --       "new_suffix": "",
-  --       "detail": "64%"
-  --     }
-  --   ],
-  --   "user_message": [],
-  --   "docs": []
-  -- }
-
-  if data ~= nil and data ~= '' and data ~= 'null' then
-    self.sender.send(data)
-  end
 end
 
 return Source
