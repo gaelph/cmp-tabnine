@@ -3,6 +3,7 @@ local async = require('plenary.async')
 local conf = require('cmp_tabnine.config')
 local requests = require('cmp_tabnine.requests')
 local binary = require('cmp_tabnine.binary')
+local log = require('cmp_tabnine.log')
 
 local function json_decode(data)
   local status, result = pcall(vim.fn.json_decode, data)
@@ -40,11 +41,13 @@ function Source.new()
 end
 
 function Source.get_hub_url(self)
-  if self == nil then
+  if self == nil and last_instance ~= nil then
     -- this happens when nvim < 0.7 and vim.api.nvim_add_user_command does not exist
     self = last_instance
+    return self.hub_url
   end
-  return self.hub_url
+
+  return ''
 end
 
 Source.open_tabnine_hub = async.wrap(function(self, quiet, callback)
@@ -58,11 +61,14 @@ Source.open_tabnine_hub = async.wrap(function(self, quiet, callback)
 
   local payload = vim.fn.json_encode(req) .. '\n'
 
-  async.run(function()
-    return self:_send_request(payload)
-  end, function(response)
-    callback(requests.open_hub_response(response))
-  end)
+  async.run(
+    function()
+      return self:_send_request(payload)
+    end,
+    vim.schedule_wrap(function(response)
+      callback(requests.open_hub_response(response))
+    end)
+  )
 end, 3)
 
 function Source.is_available(self)
