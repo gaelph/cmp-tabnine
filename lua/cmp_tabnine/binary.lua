@@ -110,6 +110,7 @@ function TabnineBinary:start()
       'nvim',
       '--client-metadata',
       'ide-restart-counter=' .. self.restart_counter,
+      'pluginVersion=1.7.0',
     },
     stdio = { self.stdin, self.stdout, self.stderr },
   }, function()
