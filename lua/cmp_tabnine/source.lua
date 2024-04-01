@@ -1,7 +1,7 @@
 local conf = require('cmp_tabnine.config')
 local requests = require('cmp_tabnine.requests')
 local binary = require('cmp_tabnine.binary')
-local log = require('cmp_tabnine.log')
+-- local log = require('cmp_tabnine.log')
 
 local function json_decode(data)
   local status, result = pcall(vim.fn.json_decode, data)
