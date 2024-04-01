@@ -22,7 +22,7 @@ end
 local function table_pack(...)
   return { n = select('#', ...), ... }
 end
-local current_log_level = vim.log.levels.WARN
+local current_log_level = vim.log.levels.DEBUG
 
 local config = {
   -- Name of the plugin. Prepended to log messages

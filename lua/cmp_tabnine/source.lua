@@ -61,6 +61,10 @@ function Source.get_debug_name()
   return 'TabNine'
 end
 
+function Source.get_trigger_characters()
+  return { '@', '.', '(', '{', ' ' }
+end
+
 function Source._do_complete(self, ctx, callback)
   local req = requests.auto_complete_request(ctx, conf)
 

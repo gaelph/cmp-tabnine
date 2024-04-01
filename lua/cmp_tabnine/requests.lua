@@ -1,4 +1,5 @@
 local cmp = require('cmp')
+local log = require('cmp-tabnine.log')
 
 local M = {}
 
@@ -16,45 +17,26 @@ local function build_snippet(prefix, placeholder, suffix, add_final_tabstop)
 end
 
 function M.auto_complete_request(ctx, conf)
-  local max_lines = conf:get('max_lines')
-  local cursor = ctx.context.cursor
-  local cur_line = ctx.context.cursor_line
-  local cur_line_before = string.sub(cur_line, 1, cursor.col - 1)
-  local cur_line_after = string.sub(cur_line, cursor.col) -- include current character
+  local before_table = vim.api.nvim_buf_get_text(0, 0, 0, vim.fn.line('.') - 1, vim.fn.col('.') - 1, {})
+  local before = table.concat(before_table, '\n')
 
-  local region_includes_beginning = false
-  local region_includes_end = false
-  if cursor.line - max_lines <= 1 then
-    region_includes_beginning = true
-  end
-  if cursor.line + max_lines >= vim.fn['line']('$') then
-    region_includes_end = true
-  end
-
-  local lines_before = vim.api.nvim_buf_get_lines(0, math.max(0, cursor.line - max_lines), cursor.line, false)
-  table.insert(lines_before, cur_line_before)
-  local before = table.concat(lines_before, '\n')
-
-  local lines_after = vim.api.nvim_buf_get_lines(0, cursor.line + 1, cursor.line + max_lines, false)
-  table.insert(lines_after, 1, cur_line_after)
-  local after = table.concat(lines_after, '\n')
+  local after_table = vim.api.nvim_buf_get_text(0, vim.fn.line('.') - 1, vim.fn.col('.') - 1, vim.fn.line('$') - 1, vim.fn.col('$,$') - 1, {})
+  local after = table.concat(after_table, '\n')
 
   local req = {}
   req.request = {
     Autocomplete = {
       before = before,
       after = after,
-      region_includes_beginning = region_includes_beginning,
-      region_includes_end = region_includes_end,
-      filename = vim.uri_from_bufnr(0):gsub('file://', ''),
+      filename = vim.fn.expand('%:t'),
+      region_includes_beginning = true,
+      region_includes_end = false,
       max_num_results = conf:get('max_num_results'),
       correlation_id = ctx.context.id,
-      line = cursor.line,
-      offset = #before + 1,
-      character = cursor.col,
-      indentation_size = (vim.api.nvim_buf_get_option(0, 'tabstop') or 4),
     },
   }
+
+  log.debug(req)
 
   return req
 end
@@ -65,6 +47,12 @@ function M.auto_complete_response(response, ctx, conf)
   local items = {}
   local old_prefix = response.old_prefix
   local results = response.results
+  local user_message = response.user_message
+
+  if #user_message > 0 then
+    log.warn(response.user_message)
+    vim.notify('Cmp-TabNine\n' .. user_message[0], vim.log.levels.ERROR)
+  end
 
   local show_strength = conf:get('show_prediction_strength')
   local base_priority = conf:get('priority')
