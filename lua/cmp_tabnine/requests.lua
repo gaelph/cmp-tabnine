@@ -1,5 +1,5 @@
 local cmp = require('cmp')
-local log = require('cmp-tabnine.log')
+local log = require('cmp_tabnine.log')
 
 local M = {}
 
