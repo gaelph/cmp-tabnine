@@ -51,7 +51,8 @@ function M.auto_complete_response(response, ctx, conf)
 
   if #user_message > 0 then
     log.warn(response.user_message)
-    vim.notify('Cmp-TabNine\n' .. user_message[0], vim.log.levels.ERROR)
+    local message = table.concat(response.user_message, '\n')
+    vim.notify('Cmp-TabNine\n' .. message, vim.log.levels.INFO)
   end
 
   local show_strength = conf:get('show_prediction_strength')
